@@ -1,10 +1,12 @@
 {
   "name": "next-mdx-blog",
   "version": "1.0.0",
+  "homepage": "https://handledexception.github.io/",
   "scripts": {
     "dev": "next",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "export": "next export"
   },
   "dependencies": {
     "@mdx-js/loader": "1.6.16",
@@ -15,5 +17,8 @@
   },
   "license": "ISC",
   "keywords": [],
-  "description": ""
+  "description": "",
+  "devDependencies": {
+    "gh-pages": "^3.2.3"
+  }
 }
