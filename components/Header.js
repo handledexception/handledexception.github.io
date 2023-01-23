@@ -6,10 +6,10 @@ export default function Header() {
       <h1><font color="red">r</font><font color="green">g</font><font color="blue">b</font>_t</h1>
       <div>
         <Link href="/">
-          <a>Blog</a>
+          Blog
         </Link>
         <Link href="/">
-          <a>About</a>
+          About
         </Link>
       </div>
       <style jsx>{`
