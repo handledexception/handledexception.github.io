@@ -1,33 +1,75 @@
 import BlogPost from '../../../components/BlogPost'
 
 export const meta = {
-  title: 'Direct3D 11 Lesson 1',
-  description: 'Getting started with Direct3D 11.',
-  date: 'July 5, 2021',
+  title: 'Direct3D 11 in C: Lesson 1',
+  description: 'A guide for using D3D11 in the C programming language.',
+  date: 'January 22, 2023',
   readTime: 2 
 }
 
 export default ({ children }) => <BlogPost meta={meta}>{children}</BlogPost>;
 
-## My Headline 
+## Getting Started
 
-```
-typedef struct stuff_s {
-    int id;
-    const char* name;
-} struct_t;
+There is a wealth of documentation and tutorials online showing how to work with Direct3D 11 (D3D11) from C++ but a lack of examples for the C programmer who wants to use D3D11. This guide will show you how to write a D3D11 application in the C programming language. We will be using CMake as the build system. Complete working examples can be found on Github.
 
-int main(int argc, char **argv) {
-    printf("Hello, world!");
+Prerequisites:
+- [Git for Windows](https://gitforwindows.org/)
+- [CMake for Windows](https://cmake.org/download/)
+- [Visual Studio](https://visualstudio.microsoft.com/vs/community/) - The examples were written under Visual Studio Community 2019 but should compile in older versions.
+
+[Working example](https://github.com/handledexception/D3D11-C-Lesson1)
+
+## Creating a window
+
+- [MSDN](https://learn.microsoft.com/en-us/windows/win32/learnwin32/creating-a-window)
+
+First things first, let's create our main procedure and create the window for our D3D11 application. The following code is the bare minimum required to create a window with a close button that can exit the application when clicked.
+```c
+int WINAPI wWinMain(HINSTANCE instance, HINSTANCE instance_prev, PWSTR cmd_line, int cmd_show)
+{
+    // Register the window class.
+    const wchar_t class_name[]  = L"D3D11 in C: Lesson 1";
+
+    WNDCLASS wc = { 0 };
+
+    wc.lpfnWndProc   = WindowProc;
+    wc.hInstance     = instance;
+    wc.lpszClassName = class_name;
+
+    RegisterClass(&wc);
+
+    // Create the window.
+
+    HWND hwnd = CreateWindowEx(
+        0,                              // Optional window styles.
+        class_name,                     // Window class
+        L"Learn to Program Windows",    // Window text
+        WS_OVERLAPPEDWINDOW,            // Window style
+
+        // Size and position
+        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+
+        NULL,       // Parent window
+        NULL,       // Menu
+        instance,  // Instance handle
+        NULL        // Additional application data
+        );
+
+    if (hwnd == NULL)
+    {
+        return 0;
+    }
+
+    ShowWindow(hwnd, cmd_show);
+
+    MSG msg = { 0 };
+    while (GetMessage(&msg, NULL, 0, 0) > 0)
+    {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+
     return 0;
 }
 ```
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque maximus pellentesque dolor non egestas. In sed tristique elit. Cras vehicula, nisl vel ultricies gravida, augue nibh laoreet arcu, et tincidunt augue dui non elit. Vestibulum semper posuere magna, quis molestie mauris faucibus ut. Praesent ornare velit sit amet enim semper lacinia. Aenean nec sem lacus. Cras porta nunc nec leo lacinia sagittis. Aliquam ornare gravida cursus. Etiam ultrices massa quis erat scelerisque rhoncus. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Proin lacinia sodales augue, non mattis ipsum pretium non. Morbi vehicula tempor blandit. Nam rhoncus, massa a maximus imperdiet, tortor risus aliquet tortor, nec lacinia eros nisi volutpat massa. Maecenas ut augue ipsum.
-
-Sed vehicula libero pulvinar
-tincidunt ligula non, luctus massa. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Maecenas arcu purus, aliquam ac molestie ac, luctus eget sem. Sed pellentesque massa eros, condimentum commodo ligula cursus ut. Mauris sit amet molestie ipsum. Nullam venenatis est at purus mollis consectetur. Phasellus a ipsum a quam ullamcorper aliquet. Nunc gravida bibendum placerat.
-
-## My Headline
-
-Fusce lacinia mauris vel massa tincidunt dignissim. Proin tempus nunc sed efficitur porta. Nunc ornare tellus scelerisque velit euismod, ut mollis diam tristique. Phasellus vel diam egestas augue ullamcorper gravida. Sed id mattis ligula, id suscipit nisl. Ut placerat in est vel rutrum. Integer tempor condimentum lectus, pretium cursus dolor venenatis sit amet. Ut venenatis lectus massa, eu tincidunt ipsum congue et. Curabitur mollis lacinia magna eu hendrerit. Mauris finibus leo ut orci vehicula feugiat. Etiam at ultrices velit. Aliquam faucibus congue lorem, at bibendum felis dapibus a. Pellentesque ornare dignissim magna, vitae molestie massa.

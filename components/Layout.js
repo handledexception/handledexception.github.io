@@ -1,5 +1,5 @@
 import Head from "next/head";
-import Header from "./Header";
+import Nav from "./Nav";
 
 export default function Layout({ children, pageTitle, description }) {
   return (
@@ -44,7 +44,7 @@ export default function Layout({ children, pageTitle, description }) {
         }
       `}</style>
       <main>
-        <Header />
+        <Nav />
         <div className="content">{children}</div>
       </main>
     </>
