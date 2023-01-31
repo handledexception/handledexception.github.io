@@ -1,5 +1,10 @@
 import Link from "next/link"
+
 // TODO: CSS styles to delineate rows instead of <p>
+
+const isDebug = false
+const slugSuffix = (isDebug ? "" : ".html")
+
 export const PostPreview = ({post}) => {
   return (
     <div>
@@ -15,7 +20,7 @@ export const PostPreview = ({post}) => {
         ☕&nbsp;{post.frontMatter.readTime + ' min read'}
       </span>
       </p>
-      <Link href={"/blog/" + post.slug + ".html"} passHref>
+      <Link href={"/blog/" + post.slug + slugSuffix} passHref>
         Read more
       </Link>&nbsp;&rarr;
     </div>
