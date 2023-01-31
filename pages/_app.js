@@ -1,4 +1,4 @@
-import "@code-hike/mdx/styles"
+import "@code-hike/mdx/dist/index.css"
 
 import Head from "next/head";
 import Layout from "../components/Layout";
