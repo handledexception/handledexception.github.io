@@ -15,7 +15,7 @@ export const PostPreview = ({post}) => {
         ☕&nbsp;{post.frontMatter.readTime + ' min read'}
       </span>
       </p>
-      <Link href={"/blog/" + post.slug} passHref>
+      <Link href={"/blog/" + post.slug + ".html"} passHref>
         Read more
       </Link>&nbsp;&rarr;
     </div>
