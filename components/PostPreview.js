@@ -1,9 +1,11 @@
 import Link from "next/link"
-
+import { config } from "../blog.config"
 // TODO: CSS styles to delineate rows instead of <p>
 
-const isDebug = false
-const slugSuffix = (isDebug ? "" : ".html")
+// Set RUNNING_ON_SERVER to false before publishing.
+// Once the following bug is fixed we should be able to use typeof window === 'undefined'.
+// https://github.com/vercel/next.js/issues/19922
+const RUNNING_ON_SERVER = false
 
 export const PostPreview = ({post}) => {
   return (
@@ -20,7 +22,7 @@ export const PostPreview = ({post}) => {
         ☕&nbsp;{post.frontMatter.readTime + ' min read'}
       </span>
       </p>
-      <Link href={"/blog/" + post.slug + slugSuffix} passHref>
+      <Link href={"/blog/" + post.slug + (RUNNING_ON_SERVER ? "" : ".html")} passHref>
         Read more
       </Link>&nbsp;&rarr;
     </div>

@@ -11,7 +11,7 @@ import { CH } from "@code-hike/mdx/components"
 const PostPage = ({ frontMatter: { title, date, description }, slug, mdxSource }) => {
   console.log(`[PostPage] - ${slug}\n${title}\n${date}\n${description}`)
   return (
-    <div className="mt-4">
+    <div>
       <MDXRemote {...mdxSource} components={ {CH} } />
     </div>
   )
@@ -20,6 +20,7 @@ const PostPage = ({ frontMatter: { title, date, description }, slug, mdxSource }
 const getStaticPaths = async () => {
   const postsDir = path.join(process.cwd(), config.mdxSources)
   const files = fs.readdirSync(postsDir)
+  console.log(`[slug].getStaticPaths:\n+ ${files.join('\n+ ')}`)
   const paths = files.map(filename => ({
     params: {
       slug: filename.replace('.mdx', '')

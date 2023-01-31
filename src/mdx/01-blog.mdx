@@ -20,8 +20,7 @@ Prerequisites:
 
 - [MSDN](https://learn.microsoft.com/en-us/windows/win32/learnwin32/creating-a-window)
 
-First things first, let's create our main procedure and create the window for our D3D11 application. The following code is the bare minimum required to create a window with a close button that can exit the application when clicked.
-<CH.Code>
+First things first, let's create our main procedure and the window for our application. The following code is the bare minimum required to create a window with the Win32 API.
 ```c
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE instance_prev, PWSTR cmd_line, int cmd_show)
 {
@@ -70,4 +69,54 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE instance_prev, PWSTR cmd_line,
     return 0;
 }
 ```
-</CH.Code>
+
+Next up we will need functions load the d3d11.dll and dxgi.dll libraries so that we can access the symbols we will need to create a D3D11 device, context and swap chain.
+I've created three simple wrapper functions around the Win32 LoadLibrary, FreeLibrary and GetProcAddress functions:
+- lib_open - Wrapper around LoadLibrary
+- lib_close - Wrapper around FreeLibrary
+- lib_get_sym - Wrapper around GetProcAddress
+
+```c
+void *lib_open(const char* path)
+{
+    if (!path)
+        return NULL;
+
+    size_t len = strlen(path) + 1;
+    wchar_t* path_wide = (wchar_t*)malloc((sizeof(wchar_t) * len));
+    size_t conv_len = 0;
+    size_t wlen = MultiByteToWideChar(CP_ACP, 0, path, (int)len, 0, 0); 
+    MultiByteToWideChar(CP_ACP, 0, path, (int)len, path_wide, (int)wlen);
+
+    HMODULE module = LoadLibrary(path_wide);
+    if (!module)
+        return NULL;
+
+    free((void*)path_wide);
+    path_wide = NULL;
+
+    return (void*)module;
+}
+
+void lib_close(void* module)
+{
+    FreeLibrary(module);
+}
+
+void* lib_get_sym(void* module, const char* func)
+{
+    return GetProcAddress(module, func);
+}
+```
+
+Now we will call these functions at the top of our main procedure to load the d3d11.dll and dxgi.dll libraries:
+```c
+HMODULE d3d11_dll = (HMODULE)lib_open("d3d11.dll");
+if (!d3d11_dll) {
+    return 1;
+}
+HMODULE dxgi_dll = (HMODULE)lib_open("dxgi.dll");
+if (!dxgi_dll) {
+    return 1;
+}
+```
