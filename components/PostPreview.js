@@ -5,8 +5,6 @@ import { config } from "../blog.config"
 // Set LOCAL_DEBUG to false before publishing.
 // Once the following bug is fixed we should be able to use typeof window === 'undefined'.
 // https://github.com/vercel/next.js/issues/19922
-const LOCAL_DEBUG = false
-
 export const PostPreview = ({post}) => {
   return (
     <div>
@@ -22,7 +20,7 @@ export const PostPreview = ({post}) => {
         ☕&nbsp;{post.frontMatter.readTime + ' min read'}
       </span>
       </p>
-      <Link href={"/blog/" + post.slug + (LOCAL_DEBUG ? "" : ".html")} passHref>
+      <Link href={"/blog/" + post.slug + (process.env.LOCAL_DEBUG ? "" : ".html")} passHref>
         Read more
       </Link>&nbsp;&rarr;
     </div>
