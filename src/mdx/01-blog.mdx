@@ -1,82 +1,139 @@
 ---
-title: 'Direct3D 11 in C: Lesson 1'
-date: 'January 22, 2023'
+title: 'Direct3D 11 for C Programmers: Part 1'
+date: 'May 13, 2023'
 description: 'A guide for using D3D11 in the C programming language.'
 readTime: 10
 ---
 
-## Getting Started
+# Direct3D 11 C Programmers: Part 1
 
-There is a wealth of documentation and tutorials online showing how to work with Direct3D 11 (D3D11) from C++ but a lack of examples for the C programmer who wants to use D3D11. This guide will show you how to write a D3D11 application in the C programming language. We will be using CMake as the build system. Complete working examples can be found on Github.
+Direct3D 11 is a graphics API developed by Microsoft as part of the DirectX 11 suite of APIs.
 
-Prerequisites:
+While there is a wealth of information on the internet for C++ programmers working with Direct3D 11, there is a lack of guides on using D3D11 in C.
+
+Some of the more popular websites for C++ D3D11 programmers include:
+1. [RasterTek](https://www.rastertek.com/tutdx11.html)
+1. [Braynzar Soft](https://www.braynzarsoft.net/viewtutorial/q16390-braynzar-soft-directx-11-tutorials)
+1. [DirectXTutorial](http://www.directxtutorial.com/LessonList.aspx?listid=11)
+1. [alain.xyz](https://alain.xyz/blog/raw-directx11)
+
+Even the [Microsoft Developer Network (MSDN) Programming guide for Direct3D 11](https://learn.microsoft.com/en-us/windows/win32/direct3d11/dx-graphics-overviews) only provides examples in C++.
+
+This blog series aims to provide guidance and working examples for the C programmer who wishes to create Direct3D 11 applications. The series assumes a working knowledge of C programming and the Win32 API in general.
+
+In this first blog post, we will explore the basics of setting up a DirectX 11 rendering system using the C programming language.
+1. Creating a DXGI Factory
+1. Acquiring a DXGI Adapter
+1. Creating a D3D11 Device
+1. Creating a D3D11 Device Context
+
+If you would like to skip straight to a working example for this lesson, follow the link to the github repo for this lesson below:
+
+- [Lesson 1 Working Example (GitHub)](https://github.com/handledexception/D3D11-C-Lesson1)
+
+### Prerequisites:
+
 - [Git for Windows](https://gitforwindows.org/)
 - [CMake for Windows](https://cmake.org/download/)
 - [Visual Studio](https://visualstudio.microsoft.com/vs/community/) - The examples were written under Visual Studio Community 2019 but should compile in older versions.
 
-[Working example](https://github.com/handledexception/D3D11-C-Lesson1)
+## 1. Include files and link libs
 
-## Creating a window
+First things first, we must include the proper header files in order to access the APIs for Win32 window creation, opening the graphics adapter, and creating a D3D11 device and device context.
 
-- [MSDN](https://learn.microsoft.com/en-us/windows/win32/learnwin32/creating-a-window)
-
-First things first, let's create our main procedure and the window for our application. The following code is the bare minimum required to create a window with the Win32 API.
 ```c
-int WINAPI wWinMain(HINSTANCE instance, HINSTANCE instance_prev, PWSTR cmd_line, int cmd_show)
-{
-    // Register the window class.
-    const wchar_t class_name[]  = L"D3D11 in C: Lesson 1";
+// Defines WIN32_LEAN_AND_MEAN, which reduces the size of the included Win32 header files, and improves compilation times.
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <Windows.h>
 
-    WNDCLASS wc = { 0 };
+// Required for accessing the DXGI and D3D11 C APIs
+#define COBJMACROS
+#define CINTERFACE
 
-    wc.lpfnWndProc   = WindowProc;
-    wc.hInstance     = instance;
-    wc.lpszClassName = class_name;
+// Include all of the DXGI and D3D11 headers we will use
+#include <dxgi.h>
+#include <dxgi1_2.h>
+#include <dxgi1_3.h>
+#include <dxgiformat.h>
+#include <d3d11.h>
+#include <d3d11_1.h>
+#include <d3dcompiler.h>
 
-    RegisterClass(&wc);
+// Just C things
+#include <stdio.h>
+#include <stdbool.h>
+#include <inttypes.h>
 
-    // Create the window.
-
-    HWND hwnd = CreateWindowEx(
-        0,                              // Optional window styles.
-        class_name,                     // Window class
-        L"Learn to Program Windows",    // Window text
-        WS_OVERLAPPEDWINDOW,            // Window style
-
-        // Size and position
-        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-
-        NULL,       // Parent window
-        NULL,       // Menu
-        instance,  // Instance handle
-        NULL        // Additional application data
-        );
-
-    if (hwnd == NULL)
-    {
-        return 0;
-    }
-
-    ShowWindow(hwnd, cmd_show);
-
-    MSG msg = { 0 };
-    while (GetMessage(&msg, NULL, 0, 0) > 0)
-    {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
-
-    return 0;
-}
+// Link libs for DXGI, D3D11 and the D3D shader compiler
+#pragma comment(lib, "dxgi")
+#pragma comment(lib, "d3d11")
+#pragma comment(lib, "d3dcompiler")
 ```
 
-Next up we will need functions load the d3d11.dll and dxgi.dll libraries so that we can access the symbols we will need to create a D3D11 device, context and swap chain.
-I've created three simple wrapper functions around the Win32 LoadLibrary, FreeLibrary and GetProcAddress functions:
-- lib_open - Wrapper around LoadLibrary
-- lib_close - Wrapper around FreeLibrary
-- lib_get_sym - Wrapper around GetProcAddress
+## 2. Defines and constants
 
 ```c
+// Define our own GUIDs so we don't have to link against dxguid.lib
+static const GUID IID_IDXGIFactory2 = {0x50c83a1c,
+					  0xe072,
+					  0x4c48,
+					  {0x87, 0xb0, 0x36, 0x30, 0xfa, 0x36,
+					   0xa6, 0xd0}};
+static const GUID IID_IDXGIDevice1 = {0x77db970f,
+					 0x6276,
+					 0x48ba,
+					 {0xba, 0x28, 0x07, 0x01, 0x43, 0xb4,
+					  0x39, 0x2c}};
+static const GUID IID_ID3D11Device1 = {0xa04bfb29,
+					  0x08ef,
+					  0x43d6,
+					  {0xa4, 0x9c, 0xa9, 0xbd, 0xbd, 0xcb,
+					   0xe6, 0x86}};
+static const GUID IID_ID3D11DeviceContext1 = {0xbb2c6faa,
+						 0xb5fb,
+						 0x4082,
+						 {0x8e, 0x6b, 0x38, 0x8b, 0x8c,
+						  0xfa, 0x90, 0xe1}};
+
+// Define our function pointers for accessing DXGI and D3D11 functions
+typedef HRESULT(WINAPI* PFN_CREATE_DXGI_FACTORY2)(UINT flags, REFIID riid,
+						  void** ppFactory);
+static PFN_CREATE_DXGI_FACTORY2 CreateDXGIFactory2Func = NULL;
+static PFN_D3D11_CREATE_DEVICE D3D11CreateDeviceFunc = NULL;
+
+#define ADAPTER_INDEX 0 // default to the first graphics adapter
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+```
+
+## 3. Struct to hold DXGI and D3D11 object pointers
+
+The `gfx_system` struct will be our container for the rest of the DXGI and D3D11 objects we interact with.
+
+```c
+// Structure to hold DXGI and D3D11 objects
+struct gfx_system {
+	IDXGIFactory2* dxgi_factory;
+	IDXGIAdapter1* dxgi_adapter;
+	IDXGIDevice1* dxgi_device;
+	IDXGISwapChain2* dxgi_swap_chain;
+	ID3D11Device1* device;
+	ID3D11DeviceContext1* ctx;
+};
+```
+
+## 4. Functions to load DLLs and get symbols
+
+We will need functions to load the d3d11.dll and dxgi.dll dynamic libraries and access their symbols for creating a DXGI factory and adapter, D3D11 device, device context and swap chain, etc.
+
+I've created three simple wrapper functions around the Win32 `LoadLibrary`, `FreeLibrary` and `GetProcAddress` functions:
+- `lib_open` - Wrapper around `LoadLibrary`
+- `lib_close` - Wrapper around `FreeLibrary`
+- `lib_get_sym` - Wrapper around `GetProcAddress`
+
+```c
+// Open a DLL
 void *lib_open(const char* path)
 {
     if (!path)
@@ -85,7 +142,7 @@ void *lib_open(const char* path)
     size_t len = strlen(path) + 1;
     wchar_t* path_wide = (wchar_t*)malloc((sizeof(wchar_t) * len));
     size_t conv_len = 0;
-    size_t wlen = MultiByteToWideChar(CP_ACP, 0, path, (int)len, 0, 0); 
+    size_t wlen = MultiByteToWideChar(CP_ACP, 0, path, (int)len, 0, 0);
     MultiByteToWideChar(CP_ACP, 0, path, (int)len, path_wide, (int)wlen);
 
     HMODULE module = LoadLibrary(path_wide);
@@ -98,25 +155,192 @@ void *lib_open(const char* path)
     return (void*)module;
 }
 
+// Close a DLL
 void lib_close(void* module)
 {
     FreeLibrary(module);
 }
 
+// Get a sybmol from a DLL
 void* lib_get_sym(void* module, const char* func)
 {
     return GetProcAddress(module, func);
 }
+
+// Helper function to close both DXGI and D3D11
+void close_libs(HMODULE dxgi, HMODULE d3d11)
+{
+    if (dxgi != NULL)
+        lib_close(dxgi);
+    if (d3d11 != NULL)
+        lib_close(d3d11);
+}
 ```
 
-Now we will call these functions at the top of our main procedure to load the d3d11.dll and dxgi.dll libraries:
+## 5. Create a DXGI Factory and D3D11 Device
 ```c
-HMODULE d3d11_dll = (HMODULE)lib_open("d3d11.dll");
-if (!d3d11_dll) {
-    return 1;
-}
-HMODULE dxgi_dll = (HMODULE)lib_open("dxgi.dll");
-if (!dxgi_dll) {
-    return 1;
+bool gfx_create_device(uint32_t adapter, struct gfx_system* gfx)
+{
+	UINT dxgi_flags = 0;
+#if defined(BM_DEBUG)
+	dxgi_flags |= DXGI_CREATE_FACTORY_DEBUG;
+#endif
+
+    HRESULT hr = CreateDXGIFactory2Func(dxgi_flags, &IID_IDXGIFactory2, (void**)&gfx->dxgi_factory);
+    if (FAILED(hr)) {
+        return false;
+    }
+
+    hr = IDXGIFactory2_EnumAdapters1(gfx->dxgi_factory, adapter, &gfx->dxgi_adapter);
+    if (FAILED(hr)) {
+        return false;
+    }
+
+	UINT create_flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+#if defined(BM_DEBUG)
+	create_flags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+
+	const D3D_FEATURE_LEVEL feature_levels[] = {
+		D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0,
+		D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0,
+		D3D_FEATURE_LEVEL_9_3,  D3D_FEATURE_LEVEL_9_2,
+		D3D_FEATURE_LEVEL_9_1};
+
+	UINT num_feature_levels = ARRAY_SIZE(feature_levels);
+
+    D3D_FEATURE_LEVEL feature_level;
+	hr = D3D11CreateDeviceFunc((IDXGIAdapter*)gfx->dxgi_adapter,
+				   D3D_DRIVER_TYPE_UNKNOWN, NULL, create_flags,
+				   feature_levels, num_feature_levels,
+				   D3D11_SDK_VERSION,
+				   (ID3D11Device**)&gfx->device,
+				   &feature_level,
+				   (ID3D11DeviceContext**)&gfx->ctx);
+    if (FAILED(hr)) {
+        return false;
+    }
+
+	hr = ID3D11Device_QueryInterface(gfx->device, &IID_ID3D11Device1, (void**)&gfx->device);
+    if (FAILED(hr)) {
+        return false;
+    }
+
+	hr = ID3D11DeviceContext_QueryInterface(gfx->ctx,
+						&IID_ID3D11DeviceContext1,
+						(void**)&gfx->ctx);
+    if (FAILED(hr)) {
+        return false;
+    }
+
+	hr = ID3D11Device_QueryInterface(gfx->device,
+					 &IID_IDXGIDevice1,
+					 (void**)&gfx->dxgi_device);
+    if (FAILED(hr)) {
+        return false;
+    }
+
+    return true;
 }
 ```
+
+## 6. Win32 Window Procedure
+
+The following function defines our main window procedure for handling Win32 window messages.
+
+```c
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
+{
+    switch (msg) {
+        case WM_CLOSE:
+            DestroyWindow(hwnd);
+            return 0;
+        case WM_DESTROY:
+            PostQuitMessage(0);
+            return 0;
+    }
+
+    return DefWindowProc(hwnd, msg, wp, lp);
+}
+```
+
+## 7. WinMain Procedure
+
+The following code is the bare minimum required to [create a window with the Win32 API](https://learn.microsoft.com/en-us/windows/win32/learnwin32/creating-a-window).
+
+```c
+int WINAPI wWinMain(HINSTANCE instance, HINSTANCE instance_prev, PWSTR cmd_line, int cmd_show)
+{
+    int result = 0;
+
+    // Load DXGI and D3D11 DLLs
+    HMODULE dxgi_dll = (HMODULE)lib_open("dxgi.dll");
+    HMODULE d3d11_dll = (HMODULE)lib_open("d3d11.dll");
+    if (dxgi_dll == NULL || d3d11_dll == NULL) {
+        result = 1;
+        goto cleanup;
+    }
+
+    // Get the function pointer symbols from the DLLs
+    CreateDXGIFactory2Func = lib_get_sym(dxgi_dll, "CreateDXGIFactory2");
+    D3D11CreateDeviceFunc = lib_get_sym(d3d11_dll, "D3D11CreateDevice");
+    if (!CreateDXGIFactory2Func || !D3D11CreateDeviceFunc) {
+        result = 2;
+        goto cleanup;
+    }
+
+    // Register the window class.
+    const wchar_t class_name[]  = L"MyAwesomeWindow";
+    WNDCLASS wc = { 0 };
+    wc.lpfnWndProc   = WindowProc;
+    wc.hInstance     = instance;
+    wc.lpszClassName = class_name;
+
+    RegisterClass(&wc);
+
+    // Create the window.
+    HWND hwnd = CreateWindowEx(
+        0,                                                              /* Optional window styles */
+        class_name,                                                     /* Window class */
+        L"D3D11 in C: Lesson 1",                                        /* Window text */
+        WS_OVERLAPPEDWINDOW,                                            /* Window style */
+        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,     /* Window size and position */
+        NULL,                                                           /* Parent window */
+        NULL,                                                           /* Menu handle */
+        instance,                                                       /* Instance handle */
+        NULL                                                            /* Additional application data */
+    );
+    if (hwnd == NULL) {
+        result = 3;
+        goto cleanup;
+    }
+
+    // Create the DXGI and D3D11 objects
+    struct gfx_system gfx = { 0 };
+    gfx_create_device(ADAPTER_INDEX, &gfx);
+
+    ShowWindow(hwnd, cmd_show);
+
+    // Main message loop
+    MSG msg = { 0 };
+    while (GetMessage(&msg, NULL, 0, 0) > 0)
+    {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+
+cleanup:
+    // Clean up DLLs and objects
+    if (result > 0) {
+        if (hwnd != NULL) {
+            DestroyWindow(hwnd);
+            hwnd = NULL;
+        }
+        close_libs(d3d11_dll, dxgi_dll);
+    }
+
+    return result;
+}
+```
+
+We now have the basic tools to start cranking out some D3D11 goodness! Stay tuned for Lesson 2, where we will start utilizing the rest of the D3D11 APIs to render a triangle in our window.

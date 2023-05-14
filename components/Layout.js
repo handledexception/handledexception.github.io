@@ -10,7 +10,7 @@ export default function Layout({ children }) {
           font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI",
             Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue",
             sans-serif;
-          background: #333;
+          background: #0c0c0c;
           color: #fff;
           font-size: 1rem;
         }
